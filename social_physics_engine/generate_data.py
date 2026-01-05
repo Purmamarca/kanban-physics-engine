@@ -54,21 +54,35 @@ class GoogleAntigravity:
     Additionally calculates:
     - N: Number of Kanban cards (Page 297 formula)
     - ROP: Reorder Point (D × L + SS)
+    - Interaction Score: Spatial influence metric (Vectorized)
     """
     
-    def __init__(self, seed: Optional[int] = 42, config: Optional[PhysicsConfig] = None):
+    def __init__(self, seed: Optional[int] = 42, config: Optional[PhysicsConfig] = None, num_users: Optional[int] = None):
         """
         Initialize the physics engine.
         
         Args:
             seed: Random seed for reproducibility
             config: Physics configuration parameters
+            num_users: Number of users/nodes (optional, for initialization)
         """
         if seed is not None:
             np.random.seed(seed)
         
         self.config = config or PhysicsConfig()
         self._validate_config()
+        self.num_users = num_users
+
+        # Initialize user state for interaction calculations
+        if num_users:
+            self.users = pd.DataFrame({
+                'id': range(num_users),
+                'x': np.random.uniform(0, 100, num_users),
+                'y': np.random.uniform(0, 100, num_users),
+                'influence': np.random.uniform(0, 1, num_users)
+            })
+        else:
+            self.users = None
     
     def _validate_config(self) -> None:
         """Validate configuration parameters."""
@@ -222,6 +236,60 @@ class GoogleAntigravity:
         """
         return (demand * lead_time * (1 + safety_stock)).astype(int)
     
+    def calculate_interactions(self) -> pd.DataFrame:
+        """
+        Calculate interaction scores between all pairs of users.
+        Score = (influence_a * influence_b) / distance
+
+        ⚡ OPTIMIZATION: Vectorized using NumPy broadcasting.
+        """
+        if self.users is None:
+             raise ValueError("Users not initialized. Provide num_users to __init__ or set self.users")
+
+        # Extract data as arrays
+        ids = self.users['id'].values
+        coords = self.users[['x', 'y']].values
+        influence = self.users['influence'].values
+
+        # Calculate distance matrix using broadcasting
+        # Shape: (N, N, 2) -> (N, N)
+        # Memory usage: O(N^2). For N=1000, this is ~8MB (doubles), which is safe.
+        diff = coords[:, np.newaxis, :] - coords[np.newaxis, :, :]
+        dists = np.sqrt(np.sum(diff**2, axis=2))
+
+        # Calculate influence product matrix
+        # Shape: (N, N)
+        inf_prod = np.outer(influence, influence)
+
+        # Calculate scores
+        with np.errstate(divide='ignore', invalid='ignore'):
+            scores = inf_prod / dists
+
+        # Create indices for the result
+        n = len(self.users)
+        indices = np.indices((n, n))
+        row_indices = indices[0].flatten()
+        col_indices = indices[1].flatten()
+
+        # Filter out self-loops (i == j)
+        mask = row_indices != col_indices
+
+        # Flatten arrays and apply mask
+        user_a_ids = ids[row_indices[mask]]
+        user_b_ids = ids[col_indices[mask]]
+        flat_dists = dists.flatten()[mask]
+        flat_scores = scores.flatten()[mask]
+
+        # Handle any remaining NaNs or Infs
+        flat_scores = np.nan_to_num(flat_scores, posinf=0.0, neginf=0.0)
+
+        return pd.DataFrame({
+            'user_a': user_a_ids,
+            'user_b': user_b_ids,
+            'distance': flat_dists,
+            'score': flat_scores
+        })
+
     def generate_complete_dataset(self, n_nodes: int) -> pd.DataFrame:
         """
         Generate a complete Six Sigma Kanban physics dataset.
@@ -232,6 +300,16 @@ class GoogleAntigravity:
         Returns:
             DataFrame with all physics parameters and calculated metrics
         """
+        # Ensure users are initialized for interaction calc (required for GoogleJules compatibility)
+        if self.users is None or len(self.users) != n_nodes:
+            self.num_users = n_nodes
+            self.users = pd.DataFrame({
+                'id': range(n_nodes),
+                'x': np.random.uniform(0, 100, n_nodes),
+                'y': np.random.uniform(0, 100, n_nodes),
+                'influence': np.random.uniform(0, 1, n_nodes)
+            })
+
         # Generate base parameters
         social_pressure = self.measure_social_pressure(n_nodes)
         friction = self.calculate_friction(n_nodes)
@@ -258,6 +336,15 @@ class GoogleAntigravity:
         })
         
         return df
+
+
+class GoogleJules(GoogleAntigravity):
+    """
+    Adapter for backward compatibility with tests.
+    Inherits optimized interaction calculation from GoogleAntigravity.
+    """
+    def __init__(self, num_users: int = 100, seed: int = 42):
+        super().__init__(seed=seed, num_users=num_users)
 
 
 def benchmark_performance(engine: GoogleAntigravity, n_nodes: int) -> Dict[str, float]:
@@ -370,6 +457,7 @@ def main():
     print("\n" + "=" * 70)
     print("⚡ PERFORMANCE METRICS")
     print("=" * 70)
+
     print(f"Total Generation Time: {generation_time:.3f} ms")
     print(f"Time per Node: {generation_time/n_nodes:.4f} ms")
     print(f"Nodes per Second: {n_nodes/(generation_time/1000):.0f}")
