@@ -16,6 +16,10 @@ import numpy as np
 import time
 import sys
 
+# Windows Unicode fix
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 
 @dataclass
 class PhysicsConfig:
