@@ -1,32 +1,35 @@
 """
-⚡ Kanban Physics Engine - Six Sigma Methodology
-================================================
-High-performance simulation using proven Kanban formulas
+⚡ Google Antigravity - Six Sigma Kanban Physics Engine
+========================================================
+Strict compliance with Six Sigma methodology (Pages 297-308)
 Performance: O(1) vectorized operations using NumPy
 
-Version: 2.1.0
-License: Public Domain (Unlicense)
+Author: Bolt AI Optimization
+Version: 2.0.0
+License: MIT
 """
 
-from typing import Dict, Tuple, Optional, List
-from dataclasses import dataclass, field
+from typing import Dict, Tuple, Optional
+from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 import time
 import sys
 
+# Windows Unicode fix
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 
 @dataclass
 class PhysicsConfig:
-    """Configuration parameters for the Kanban physics engine."""
-    
+    """Configuration parameters for the physics engine."""
     # Social Pressure (Average Daily Demand - D)
     avg_demand: int = 250
     demand_std_dev: int = 50
     
     # Friction (Replenishment Lead Time - L)
     avg_lead_time: int = 5
-    lead_time_variance: float = 2.0
     
     # Entropy (Safety Stock - SS)
     min_safety_stock: float = 0.10
@@ -37,18 +40,12 @@ class PhysicsConfig:
     
     # Six Sigma Z-Score (typically 1.65 for 95% service level)
     z_score: float = 1.65
-    
-    # Advanced parameters for improved dataset
-    enable_seasonality: bool = False
-    seasonality_amplitude: float = 0.15
-    enable_trends: bool = False
-    trend_factor: float = 0.01
 
 
-class KanbanPhysicsEngine:
+class GoogleAntigravity:
     """
-    ⚡ OPTIMIZED KANBAN PHYSICS ENGINE
-    ----------------------------------
+    ⚡ BOLT OPTIMIZED: STRICT KANBAN PHYSICS (Pages 297-308)
+    --------------------------------------------------------
     Simulates environment physics using Six Sigma statistical distributions.
     Performance: Vectorized (O(1) complexity relative to loop depth).
     
@@ -59,23 +56,37 @@ class KanbanPhysicsEngine:
     - C: Container Capacity
     
     Additionally calculates:
-    - N: Number of Kanban cards (Kanban formula)
+    - N: Number of Kanban cards (Page 297 formula)
     - ROP: Reorder Point (D × L + SS)
+    - Interaction Score: Spatial influence metric (Vectorized)
     """
     
-    def __init__(self, seed: Optional[int] = 42, config: Optional[PhysicsConfig] = None):
+    def __init__(self, seed: Optional[int] = 42, config: Optional[PhysicsConfig] = None, num_users: Optional[int] = None):
         """
         Initialize the physics engine.
         
         Args:
             seed: Random seed for reproducibility
             config: Physics configuration parameters
+            num_users: Number of users/nodes (optional, for initialization)
         """
         if seed is not None:
             np.random.seed(seed)
         
         self.config = config or PhysicsConfig()
         self._validate_config()
+        self.num_users = num_users
+
+        # Initialize user state for interaction calculations
+        if num_users:
+            self.users = pd.DataFrame({
+                'id': range(num_users),
+                'x': np.random.uniform(0, 100, num_users),
+                'y': np.random.uniform(0, 100, num_users),
+                'influence': np.random.uniform(0, 1, num_users)
+            })
+        else:
+            self.users = None
     
     def _validate_config(self) -> None:
         """Validate configuration parameters."""
@@ -92,7 +103,7 @@ class KanbanPhysicsEngine:
     
     def measure_social_pressure(self, n_nodes: int) -> np.ndarray:
         """
-        PARAMETER: Average Daily Demand (D)
+        PARAMETER: Average Daily Demand (D) [Page 297]
         LOGIC: Normal Distribution (Gaussian).
         
         Six Sigma Note: Demand is rarely flat. We use a mean with 
@@ -106,30 +117,17 @@ class KanbanPhysicsEngine:
         Returns:
             Array of demand values (integers)
         """
-        base_demand = np.abs(
+        return np.abs(
             np.random.normal(
                 self.config.avg_demand,
                 self.config.demand_std_dev,
                 n_nodes
             )
         ).astype(int)
-        
-        # Add seasonality if enabled
-        if self.config.enable_seasonality:
-            seasonality = np.sin(np.linspace(0, 4 * np.pi, n_nodes))
-            seasonal_adjustment = (seasonality * self.config.seasonality_amplitude * self.config.avg_demand).astype(int)
-            base_demand = np.maximum(base_demand + seasonal_adjustment, 1)
-        
-        # Add trend if enabled
-        if self.config.enable_trends:
-            trend = np.arange(n_nodes) * self.config.trend_factor * self.config.avg_demand
-            base_demand = (base_demand + trend).astype(int)
-        
-        return base_demand
     
     def calculate_friction(self, n_nodes: int) -> np.ndarray:
         """
-        PARAMETER: Replenishment Lead Time (L)
+        PARAMETER: Replenishment Lead Time (L) [Page 297]
         LOGIC: Poisson Distribution.
         
         Six Sigma Note: Captures the 'long tail' of delay friction.
@@ -146,7 +144,7 @@ class KanbanPhysicsEngine:
     
     def entropy_factor(self, n_nodes: int) -> np.ndarray:
         """
-        PARAMETER: Safety Stock (SS)
+        PARAMETER: Safety Stock (SS) [Pages 297 & 301]
         LOGIC: Derived Entropy.
         
         Six Sigma Note: Safety Stock (SS) is the hedge against Friction (L) and 
@@ -171,11 +169,11 @@ class KanbanPhysicsEngine:
     
     def container_capacity(self, n_nodes: int) -> np.ndarray:
         """
-        PARAMETER: Container Capacity (C)
+        PARAMETER: Container Capacity (C) [Page 297]
         LOGIC: Standardized Lots.
         
-        Six Sigma Note: Standardized container sizes function as visual signals
-        in Kanban systems ("Withdraw only what is needed").
+        Six Sigma Note: Page 300 Rule 2 ("Withdraw only what is needed") requires
+        standard container sizes to function as visual signals.
         
         ⚡ OPTIMIZATION: Uses np.random.choice for instant array generation.
         
@@ -195,7 +193,7 @@ class KanbanPhysicsEngine:
         container_capacity: np.ndarray
     ) -> np.ndarray:
         """
-        Calculate number of Kanban cards using Six Sigma formula.
+        Calculate number of Kanban cards using Six Sigma formula [Page 297].
         
         Formula: N = (D × L × (1 + SS)) / C
         Where:
@@ -242,47 +240,63 @@ class KanbanPhysicsEngine:
         """
         return (demand * lead_time * (1 + safety_stock)).astype(int)
     
-    def calculate_inventory_metrics(
-        self,
-        demand: np.ndarray,
-        lead_time: np.ndarray,
-        safety_stock: np.ndarray,
-        container_capacity: np.ndarray
-    ) -> Dict[str, np.ndarray]:
+    def calculate_interactions(self) -> pd.DataFrame:
         """
-        Calculate additional inventory management metrics.
-        
-        Args:
-            demand: Average daily demand array
-            lead_time: Lead time array
-            safety_stock: Safety stock percentage array
-            container_capacity: Container capacity array
-            
-        Returns:
-            Dictionary with additional metrics
+        Calculate interaction scores between all pairs of users.
+        Score = (influence_a * influence_b) / distance
+
+        ⚡ OPTIMIZATION: Vectorized using NumPy broadcasting.
         """
-        # Average inventory level
-        avg_inventory = (container_capacity * demand * lead_time) / 2
-        
-        # Turnover rate (annual, assuming 365 days)
-        turnover_rate = (demand * 365) / avg_inventory
-        
-        # Cycle stock (without safety stock)
-        cycle_stock = demand * lead_time
-        
-        # Total stock (with safety stock)
-        total_stock = cycle_stock * (1 + safety_stock)
-        
-        return {
-            'avg_inventory': avg_inventory.astype(int),
-            'turnover_rate': np.round(turnover_rate, 2),
-            'cycle_stock': cycle_stock.astype(int),
-            'total_stock': total_stock.astype(int)
-        }
-    
+        if self.users is None:
+             raise ValueError("Users not initialized. Provide num_users to __init__ or set self.users")
+
+        # Extract data as arrays
+        ids = self.users['id'].values
+        coords = self.users[['x', 'y']].values
+        influence = self.users['influence'].values
+
+        # Calculate distance matrix using broadcasting
+        # Shape: (N, N, 2) -> (N, N)
+        # Memory usage: O(N^2). For N=1000, this is ~8MB (doubles), which is safe.
+        diff = coords[:, np.newaxis, :] - coords[np.newaxis, :, :]
+        dists = np.sqrt(np.sum(diff**2, axis=2))
+
+        # Calculate influence product matrix
+        # Shape: (N, N)
+        inf_prod = np.outer(influence, influence)
+
+        # Calculate scores
+        with np.errstate(divide='ignore', invalid='ignore'):
+            scores = inf_prod / dists
+
+        # Create indices for the result
+        n = len(self.users)
+        indices = np.indices((n, n))
+        row_indices = indices[0].flatten()
+        col_indices = indices[1].flatten()
+
+        # Filter out self-loops (i == j)
+        mask = row_indices != col_indices
+
+        # Flatten arrays and apply mask
+        user_a_ids = ids[row_indices[mask]]
+        user_b_ids = ids[col_indices[mask]]
+        flat_dists = dists.flatten()[mask]
+        flat_scores = scores.flatten()[mask]
+
+        # Handle any remaining NaNs or Infs
+        flat_scores = np.nan_to_num(flat_scores, posinf=0.0, neginf=0.0)
+
+        return pd.DataFrame({
+            'user_a': user_a_ids,
+            'user_b': user_b_ids,
+            'distance': flat_dists,
+            'score': flat_scores
+        })
+
     def generate_complete_dataset(self, n_nodes: int) -> pd.DataFrame:
         """
-        Generate a complete Six Sigma Kanban physics dataset with enhanced metrics.
+        Generate a complete Six Sigma Kanban physics dataset.
         
         Args:
             n_nodes: Number of nodes to simulate
@@ -290,6 +304,16 @@ class KanbanPhysicsEngine:
         Returns:
             DataFrame with all physics parameters and calculated metrics
         """
+        # Ensure users are initialized for interaction calc (required for GoogleJules compatibility)
+        if self.users is None or len(self.users) != n_nodes:
+            self.num_users = n_nodes
+            self.users = pd.DataFrame({
+                'id': range(n_nodes),
+                'x': np.random.uniform(0, 100, n_nodes),
+                'y': np.random.uniform(0, 100, n_nodes),
+                'influence': np.random.uniform(0, 1, n_nodes)
+            })
+
         # Generate base parameters
         social_pressure = self.measure_social_pressure(n_nodes)
         friction = self.calculate_friction(n_nodes)
@@ -304,11 +328,6 @@ class KanbanPhysicsEngine:
             social_pressure, friction, entropy
         )
         
-        # Calculate additional inventory metrics
-        inventory_metrics = self.calculate_inventory_metrics(
-            social_pressure, friction, entropy, capacity
-        )
-        
         # Create comprehensive DataFrame
         df = pd.DataFrame({
             'node_id': range(n_nodes),
@@ -318,25 +337,165 @@ class KanbanPhysicsEngine:
             'container_capacity_C': capacity,
             'kanban_cards_N': kanban_cards,
             'reorder_point_ROP': reorder_point,
-            'avg_inventory': inventory_metrics['avg_inventory'],
-            'turnover_rate': inventory_metrics['turnover_rate'],
-            'cycle_stock': inventory_metrics['cycle_stock'],
-            'total_stock': inventory_metrics['total_stock']
         })
         
         return df
+    
+    def analyze_real_data(
+        self,
+        data: pd.DataFrame,
+        demand_column: str = 'demand',
+        lead_time_column: str = 'lead_time',
+        node_id_column: str = 'node_id',
+        safety_stock_column: Optional[str] = None,
+        container_capacity_column: Optional[str] = None
+    ) -> pd.DataFrame:
+        """
+        Analyze real-world data and calculate Kanban metrics.
+        
+        This method takes actual operational data (demand, lead times) and applies
+        Six Sigma Kanban formulas to calculate optimal Kanban cards and reorder points.
+        
+        Args:
+            data: DataFrame containing real operational data
+            demand_column: Name of the column containing average daily demand
+            lead_time_column: Name of the column containing lead time (days)
+            node_id_column: Name of the column containing unique identifiers
+            safety_stock_column: Optional column for safety stock percentages
+            container_capacity_column: Optional column for container capacities
+            
+        Returns:
+            DataFrame with original data plus calculated Kanban metrics
+            
+        Example:
+            >>> engine = GoogleAntigravity()
+            >>> real_data = pd.read_csv('inventory.csv')
+            >>> results = engine.analyze_real_data(
+            ...     data=real_data,
+            ...     demand_column='avg_demand',
+            ...     lead_time_column='lead_days'
+            ... )
+            >>> results.to_csv('kanban_analysis.csv', index=False)
+        """
+        # Validate input
+        required_columns = [demand_column, lead_time_column]
+        missing = [col for col in required_columns if col not in data.columns]
+        if missing:
+            raise ValueError(f"Missing required columns: {missing}")
+        
+        # Create a copy to avoid modifying original data
+        result = data.copy()
+        
+        # Extract demand and lead time
+        demand = result[demand_column].values.astype(float)
+        lead_time = result[lead_time_column].values.astype(float)
+        
+        # Handle safety stock
+        if safety_stock_column and safety_stock_column in result.columns:
+            safety_stock = result[safety_stock_column].values.astype(float)
+        else:
+            # Generate safety stock based on configuration
+            n_rows = len(result)
+            safety_stock = np.round(
+                np.random.uniform(
+                    self.config.min_safety_stock,
+                    self.config.max_safety_stock,
+                    n_rows
+                ),
+                2
+            )
+            result['safety_stock_SS'] = safety_stock
+        
+        # Handle container capacity
+        if container_capacity_column and container_capacity_column in result.columns:
+            container_capacity = result[container_capacity_column].values.astype(float)
+        else:
+            # Assign standard container sizes
+            n_rows = len(result)
+            container_capacity = np.random.choice(
+                list(self.config.container_sizes),
+                n_rows
+            )
+            result['container_capacity_C'] = container_capacity
+        
+        # Ensure positive values
+        demand = np.abs(demand)
+        lead_time = np.maximum(lead_time, 1)  # Minimum 1 day lead time
+        
+        # Calculate Kanban metrics using Six Sigma formulas
+        kanban_cards = np.ceil(
+            (demand * lead_time * (1 + safety_stock)) / container_capacity
+        ).astype(int)
+        
+        reorder_point = (demand * lead_time * (1 + safety_stock)).astype(int)
+        
+        # Add calculated columns
+        result['demand_D'] = demand.astype(int)
+        result['lead_time_L'] = lead_time.astype(int)
+        result['kanban_cards_N'] = kanban_cards
+        result['reorder_point_ROP'] = reorder_point
+        
+        # Reorder columns for clarity
+        priority_cols = [
+            node_id_column,
+            'demand_D',
+            'lead_time_L',
+            'safety_stock_SS',
+            'container_capacity_C',
+            'kanban_cards_N',
+            'reorder_point_ROP'
+        ]
+        
+        # Keep only columns that exist
+        existing_priority = [col for col in priority_cols if col in result.columns]
+        other_cols = [col for col in result.columns if col not in existing_priority]
+        
+        result = result[existing_priority + other_cols]
+        
+        return result
+    
+    def load_and_analyze_csv(
+        self,
+        filepath: str,
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Convenience method to load CSV and analyze in one step.
+        
+        Args:
+            filepath: Path to CSV file
+            **kwargs: Arguments to pass to analyze_real_data()
+            
+        Returns:
+            DataFrame with analyzed results
+            
+        Example:
+            >>> engine = GoogleAntigravity()
+            >>> results = engine.load_and_analyze_csv(
+            ...     'inventory_data.csv',
+            ...     demand_column='daily_demand',
+            ...     lead_time_column='lead_days'
+            ... )
+        """
+        data = pd.read_csv(filepath)
+        return self.analyze_real_data(data, **kwargs)
 
 
-# Maintain backward compatibility
-GoogleAntigravity = KanbanPhysicsEngine
+class GoogleJules(GoogleAntigravity):
+    """
+    Adapter for backward compatibility with tests.
+    Inherits optimized interaction calculation from GoogleAntigravity.
+    """
+    def __init__(self, num_users: int = 100, seed: int = 42):
+        super().__init__(seed=seed, num_users=num_users)
 
 
-def benchmark_performance(engine: KanbanPhysicsEngine, n_nodes: int) -> Dict[str, float]:
+def benchmark_performance(engine: GoogleAntigravity, n_nodes: int) -> Dict[str, float]:
     """
     Benchmark the performance of the physics engine.
     
     Args:
-        engine: KanbanPhysicsEngine instance
+        engine: GoogleAntigravity instance
         n_nodes: Number of nodes to simulate
         
     Returns:
@@ -407,23 +566,18 @@ def print_statistics(df: pd.DataFrame) -> None:
     print("\n🔹 Reorder Point (ROP) - Calculated Metric:")
     print(f"   Mean: {df['reorder_point_ROP'].mean():.2f} | Std: {df['reorder_point_ROP'].std():.2f}")
     print(f"   Range: [{df['reorder_point_ROP'].min()}, {df['reorder_point_ROP'].max()}]")
-    
-    # Inventory Turnover
-    print("\n🔹 Inventory Turnover Rate:")
-    print(f"   Mean: {df['turnover_rate'].mean():.2f}x/year | Std: {df['turnover_rate'].std():.2f}")
-    print(f"   Range: [{df['turnover_rate'].min():.2f}, {df['turnover_rate'].max():.2f}]")
 
 
 def main():
     """Main execution function."""
-    print("⚡ Kanban Physics Engine - Six Sigma Methodology v2.1")
+    print("⚡ Google Antigravity - Six Sigma Kanban Physics Engine v2.0")
     print("=" * 70)
-    print("High-Performance Simulation with Proven Kanban Formulas")
+    print("Strict Compliance with Six Sigma (Pages 297-308)")
     print("=" * 70)
     
     # Initialize the physics engine
     config = PhysicsConfig()
-    engine = KanbanPhysicsEngine(seed=42, config=config)
+    engine = GoogleAntigravity(seed=42, config=config)
     n_nodes = 200  # Number of nodes to simulate
     
     print(f"\n🔬 Simulating {n_nodes} nodes with vectorized NumPy operations...")
@@ -446,6 +600,7 @@ def main():
     print("\n" + "=" * 70)
     print("⚡ PERFORMANCE METRICS")
     print("=" * 70)
+
     print(f"Total Generation Time: {generation_time:.3f} ms")
     print(f"Time per Node: {generation_time/n_nodes:.4f} ms")
     print(f"Nodes per Second: {n_nodes/(generation_time/1000):.0f}")

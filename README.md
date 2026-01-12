@@ -1,37 +1,45 @@
 # ⚡ Kanban Physics Engine
 
-**A high-performance simulation engine implementing proven Six Sigma Kanban methodology**
+**A production-ready engine for analyzing real inventory data using proven Six Sigma Yellow Belt Kanban methodology**
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![NumPy](https://img.shields.io/badge/numpy-vectorized-green.svg)](https://numpy.org/)
-[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](http://unlicense.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
 ## 📋 Overview
 
-This engine models social coordination dynamics using **empirically proven Kanban physics** from **Six Sigma Yellow Belt certification material**.
+This engine analyzes real-world inventory and supply chain data using **empirically proven Kanban physics** from **Six Sigma Yellow Belt certification material (Pages 297-308)**.
 
 **This is NOT theoretical** - these are industry-standard formulas and statistical distributions used in real-world manufacturing, supply chain, and process optimization.
 
-### Core Concept
+### Core Capabilities
 
-The engine applies **physical properties** to measure social nodes:
+The engine processes your actual operational data to calculate:
 
-- **Friction** → Replenishment Lead Time (L)
-- **Entropy** → Safety Stock variability (SS)
-- **Pressure** → Average Daily Demand (D)
-- **Capacity** → Container standardization (C)
+- **Kanban Cards (N)** → Optimal number of cards/containers needed
+- **Reorder Points (ROP)** → When to trigger replenishment
+- **Safety Stock (SS)** → Buffer against demand/lead time variability
+- **Container Capacity (C)** → Standardized lot sizes
+
+### Real-World Applications
+
+- ✅ Manufacturing inventory optimization
+- ✅ Supply chain Kanban system design
+- ✅ Warehouse management analysis
+- ✅ Production planning and scheduling
+- ✅ What-if scenario modeling
 
 ---
 
-## 🎯 Six Sigma Foundation
+## 🎯 Six Sigma Yellow Belt Foundation
 
-### Proven Methodology
+### Proven Methodology (Pages 297-308)
 
 All calculations are based on **certified Six Sigma Kanban formulas**:
 
-#### 1. **Number of Kanban Cards (N)**
+#### 1. **Number of Kanban Cards (N)** [Page 297]
 
 ```
 N = (D × L × (1 + SS)) / C
@@ -54,12 +62,12 @@ Determines when to trigger replenishment.
 
 ### Statistical Distributions (Empirical)
 
-| Parameter             | Distribution      | Rationale (Six Sigma)                                   |
-| --------------------- | ----------------- | ------------------------------------------------------- |
-| **Demand (D)**        | Normal (Gaussian) | Demand variability follows bell curve in real systems   |
-| **Lead Time (L)**     | Poisson           | Captures "long tail" delays; most average, some extreme |
-| **Safety Stock (SS)** | Uniform           | Entropy hedge against D and L variability               |
-| **Container (C)**     | Discrete Choice   | Standardized lot sizes for visual signals               |
+| Parameter             | Distribution      | Rationale (Six Sigma)                                    |
+| --------------------- | ----------------- | -------------------------------------------------------- |
+| **Demand (D)**        | Normal (Gaussian) | Demand variability follows bell curve in real systems    |
+| **Lead Time (L)**     | Poisson           | Captures "long tail" delays; most average, some extreme  |
+| **Safety Stock (SS)** | Uniform           | Entropy hedge against D and L variability                |
+| **Container (C)**     | Discrete Choice   | Standardized lot sizes (visual signals, Page 300 Rule 2) |
 
 ---
 
@@ -68,21 +76,21 @@ Determines when to trigger replenishment.
 ### ⚡ Performance
 
 - **O(1) vectorized operations** using NumPy
-- Generates 200 nodes in **~1-3ms**
-- **10,000+ nodes/second** throughput
+- Processes 10,000+ records in milliseconds
 - Zero Python-level loops
+- Production-ready scalability
 
-### 📊 Comprehensive Metrics
+### 📊 Comprehensive Analysis
 
-- Base Kanban parameters (D, L, SS, C)
-- Calculated Kanban cards (N)
-- Reorder points (ROP)
-- Full statistical summaries
-- Distribution analysis
+- Real data CSV loading and processing
+- Automatic Kanban metric calculation
+- Statistical summaries and insights
+- Batch processing capabilities
+- Scenario comparison tools
 
 ### 🔧 Configurable
 
-- Customizable physics parameters
+- Customizable Six Sigma parameters
 - Adjustable statistical distributions
 - Reproducible with seed control
 - Type-safe with dataclasses
@@ -100,7 +108,7 @@ Determines when to trigger replenishment.
 
 ```bash
 # Clone the repository
-git clone https://github.com/Roanco/kanban-physics-engine.git
+git clone https://github.com/Purmamarca/kanban-physics-engine.git
 cd kanban-physics-engine
 
 # Install dependencies
@@ -118,127 +126,114 @@ pandas>=1.3.0
 
 ## 💻 Usage
 
-### Basic Usage
+### Analyzing Real Data
 
 ```python
 from social_physics_engine.generate_data import GoogleAntigravity
+import pandas as pd
 
 # Initialize engine
 engine = GoogleAntigravity(seed=42)
 
-# Generate complete dataset
-df = engine.generate_complete_dataset(n_nodes=200)
+# Load your real inventory data
+inventory_data = pd.read_csv('your_inventory.csv')
 
-print(df.head())
+# Analyze and calculate Kanban metrics
+results = engine.analyze_real_data(
+    data=inventory_data,
+    demand_column='avg_demand',
+    lead_time_column='lead_time_days',
+    node_id_column='sku'
+)
+
+# View results
+print(results[['sku', 'kanban_cards_N', 'reorder_point_ROP']])
+
+# Export recommendations
+results.to_csv('kanban_recommendations.csv', index=False)
 ```
 
-### Custom Configuration
+### Quick CSV Analysis
+
+```python
+from social_physics_engine.generate_data import GoogleAntigravity
+
+# One-line analysis
+engine = GoogleAntigravity()
+results = engine.load_and_analyze_csv(
+    'inventory_data.csv',
+    demand_column='demand',
+    lead_time_column='lead_time'
+)
+
+results.to_csv('analysis_results.csv', index=False)
+```
+
+### Custom Configuration for Your Environment
 
 ```python
 from social_physics_engine.generate_data import GoogleAntigravity, PhysicsConfig
 
-# Custom Six Sigma parameters
+# Configure for your specific environment
 config = PhysicsConfig(
-    avg_demand=300,           # Higher demand
-    demand_std_dev=75,        # More variability
-    avg_lead_time=7,          # Longer lead time
-    min_safety_stock=0.15,    # Higher safety buffer
-    max_safety_stock=0.40,
-    container_sizes=(25, 75, 150),  # Different lot sizes
-    z_score=1.96              # 97.5% service level
+    avg_demand=300,              # Your average demand
+    demand_std_dev=75,           # Your demand variability
+    avg_lead_time=7,             # Your typical lead time
+    min_safety_stock=0.15,       # Minimum safety buffer
+    max_safety_stock=0.40,       # Maximum safety buffer
+    container_sizes=(25, 75, 150),  # Your container sizes
+    z_score=1.96                 # Service level (97.5%)
 )
 
 engine = GoogleAntigravity(seed=42, config=config)
-df = engine.generate_complete_dataset(n_nodes=500)
+results = engine.analyze_real_data(your_data)
 ```
 
-### Run Demo
+### Run Examples
 
 ```bash
-python social_physics_engine/generate_data.py
+# See comprehensive real-world examples
+python examples_real_data.py
 ```
 
-**Output:**
-
-```
-⚡ Google Antigravity - Six Sigma Kanban Physics Engine v2.0
-======================================================================
-Strict Compliance with Six Sigma Methodology
-======================================================================
-
-🔬 Simulating 200 nodes with vectorized NumPy operations...
-
-📊 STATISTICAL SUMMARY
-======================================================================
-
-🔹 Social Pressure (D) - Normal Distribution:
-   Mean: 249.87 | Std: 49.23
-   Range: [142, 378]
-   Median: 248 | Mode: 256
-
-🔹 Friction (L) - Poisson Distribution:
-   Mean: 5.02 | Std: 2.18
-   Range: [1, 11]
-   Median: 5
-
-🔹 Entropy Factor (SS) - Uniform Distribution:
-   Mean: 0.20 | Std: 0.06
-   Range: [0.10, 0.30]
-
-🔹 Container Capacity (C) - Standardized Lots:
-   Unique Values: [20, 50, 100]
-   Distribution: {20: 68, 50: 64, 100: 68}
-
-🔹 Kanban Cards (N) - Calculated Metric:
-   Mean: 18.45 | Std: 15.32
-   Range: [2, 89]
-
-🔹 Reorder Point (ROP) - Calculated Metric:
-   Mean: 1498.23 | Std: 743.56
-   Range: [213, 4452]
-
-======================================================================
-📋 SAMPLE DATA (First 10 Nodes)
-======================================================================
- node_id  demand_D  lead_time_L  safety_stock_SS  container_capacity_C  kanban_cards_N  reorder_point_ROP
-       0       274            6             0.17                   100              20               1920
-       1       217            3             0.29                    50              17                840
-       2       256            7             0.24                    50              45               2226
-...
-
-======================================================================
-⚡ PERFORMANCE METRICS
-======================================================================
-Total Generation Time: 2.456 ms
-Time per Node: 0.0123 ms
-Nodes per Second: 81466
-
-💾 Data exported to: kanban_physics_data.csv
-
-✅ Physics engine test completed successfully!
-⚡ Performance: O(1) vectorized operations for 200 nodes
-======================================================================
-```
+**For detailed usage instructions, see [USAGE_GUIDE.md](USAGE_GUIDE.md)**
 
 ---
 
 ## 📊 Output Data Schema
 
-| Column                 | Type  | Description                     | Six Sigma Reference |
-| ---------------------- | ----- | ------------------------------- | ------------------- |
-| `node_id`              | int   | Unique node identifier          | -                   |
-| `demand_D`             | int   | Average Daily Demand            | Kanban formula      |
-| `lead_time_L`          | int   | Replenishment Lead Time (days)  | Kanban formula      |
-| `safety_stock_SS`      | float | Safety Stock percentage         | Kanban formula      |
-| `container_capacity_C` | int   | Standardized container size     | Visual management   |
-| `kanban_cards_N`       | int   | Number of Kanban cards          | Calculated metric   |
-| `reorder_point_ROP`    | int   | Inventory reorder trigger point | Derived metric      |
+When you analyze real data, the engine returns a DataFrame with these columns:
+
+| Column                 | Type  | Description                    | Six Sigma Reference  |
+| ---------------------- | ----- | ------------------------------ | -------------------- |
+| `node_id` (or your ID) | str   | Your unique identifier         | -                    |
+| `demand_D`             | int   | Average Daily Demand           | Page 297             |
+| `lead_time_L`          | int   | Replenishment Lead Time (days) | Page 297             |
+| `safety_stock_SS`      | float | Safety Stock percentage        | Pages 297, 301       |
+| `container_capacity_C` | int   | Standardized container size    | Page 297, 300 Rule 2 |
+| `kanban_cards_N`       | int   | **Number of Kanban cards**     | Page 297 formula     |
+| `reorder_point_ROP`    | int   | **Inventory reorder trigger**  | Derived              |
+
+### Example Output
+
+```
+node_id  demand_D  lead_time_L  safety_stock_SS  container_capacity_C  kanban_cards_N  reorder_point_ROP
+SKU-001       250            5             0.20                    50              30               1500
+SKU-002       180            3             0.18                    50              13                636
+SKU-003       420            7             0.25                   100              37               3675
+```
+
+**Interpretation:**
+
+- **SKU-001** needs **30 Kanban cards** (each holding 50 units)
+- When inventory drops to **1500 units**, trigger replenishment
+- Total system capacity: 30 × 50 = **1500 units**
 
 ---
 
 ## 🔬 Six Sigma Compliance Details
 
-### Core Kanban Formula
+### Page 297: Core Kanban Formula
 
 The engine implements the exact formula for calculating Kanban cards:
 
@@ -248,11 +243,11 @@ N = (D × L × (1 + SS)) / C
 
 Rounded up (ceiling) to ensure adequate coverage.
 
-### Visual Signals
+### Page 300: Rule 2 - Visual Signals
 
 Container capacities are **standardized discrete values** (20, 50, 100) to function as visual management signals in Kanban systems.
 
-### Safety Stock Rationale
+### Page 301: Safety Stock Rationale
 
 Safety Stock (SS) is the **empirically proven hedge** against:
 
@@ -271,7 +266,7 @@ Safety Stock (SS) is the **empirically proven hedge** against:
 ## 🏗️ Architecture
 
 ```
-kanban-physics-engine/
+social-physics-engine/
 ├── social_physics_engine/
 │   ├── __init__.py
 │   └── generate_data.py          # Core engine (GoogleAntigravity class)
@@ -300,7 +295,7 @@ Main physics engine with methods:
 - `calculate_friction()` → Generate lead time (L)
 - `entropy_factor()` → Generate safety stock (SS)
 - `container_capacity()` → Generate container sizes (C)
-- `calculate_kanban_cards()` → Apply Kanban formula
+- `calculate_kanban_cards()` → Apply Page 297 formula
 - `calculate_reorder_point()` → Compute ROP
 - `generate_complete_dataset()` → Full simulation
 
@@ -310,7 +305,7 @@ Main physics engine with methods:
 
 This engine demonstrates:
 
-1. **Six Sigma Kanban methodology** in code
+1. **Six Sigma Yellow Belt Kanban methodology** in code
 2. **Statistical distributions** applied to real-world problems
 3. **Vectorized computing** for performance optimization
 4. **Type safety** and modern Python practices
@@ -342,7 +337,7 @@ _Benchmarked on standard hardware with NumPy 1.24+_
 
 Contributions are welcome! Please ensure:
 
-- Maintain Six Sigma compliance
+- Maintain Six Sigma compliance (Pages 297-308)
 - Preserve vectorized performance
 - Add tests for new features
 - Update documentation
@@ -351,17 +346,13 @@ Contributions are welcome! Please ensure:
 
 ## 📄 License
 
-This is free and unencumbered software released into the public domain.
-
-Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means.
-
-For more information, please refer to <http://unlicense.org/>
+MIT License - See LICENSE file for details
 
 ---
 
 ## 🔗 References
 
-- Six Sigma Yellow Belt Certification Material
+- **Six Sigma Yellow Belt Certification Material** (Pages 297-308)
 - Kanban methodology and visual management
 - Statistical process control (SPC)
 - Lean manufacturing principles
