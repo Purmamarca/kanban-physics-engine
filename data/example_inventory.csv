@@ -1,0 +1,11 @@
+node_id,demand,lead_time,product_name,category
+SKU-001,250,5,Widget A,Electronics
+SKU-002,180,3,Component B,Hardware
+SKU-003,420,7,Assembly C,Manufacturing
+SKU-004,95,2,Part D,Components
+SKU-005,310,6,Module E,Electronics
+SKU-006,275,4,Unit F,Hardware
+SKU-007,150,5,Device G,Electronics
+SKU-008,380,8,System H,Manufacturing
+SKU-009,210,3,Tool I,Hardware
+SKU-010,165,4,Fixture J,Components

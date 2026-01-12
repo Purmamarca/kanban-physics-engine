@@ -340,6 +340,145 @@ class GoogleAntigravity:
         })
         
         return df
+    
+    def analyze_real_data(
+        self,
+        data: pd.DataFrame,
+        demand_column: str = 'demand',
+        lead_time_column: str = 'lead_time',
+        node_id_column: str = 'node_id',
+        safety_stock_column: Optional[str] = None,
+        container_capacity_column: Optional[str] = None
+    ) -> pd.DataFrame:
+        """
+        Analyze real-world data and calculate Kanban metrics.
+        
+        This method takes actual operational data (demand, lead times) and applies
+        Six Sigma Kanban formulas to calculate optimal Kanban cards and reorder points.
+        
+        Args:
+            data: DataFrame containing real operational data
+            demand_column: Name of the column containing average daily demand
+            lead_time_column: Name of the column containing lead time (days)
+            node_id_column: Name of the column containing unique identifiers
+            safety_stock_column: Optional column for safety stock percentages
+            container_capacity_column: Optional column for container capacities
+            
+        Returns:
+            DataFrame with original data plus calculated Kanban metrics
+            
+        Example:
+            >>> engine = GoogleAntigravity()
+            >>> real_data = pd.read_csv('inventory.csv')
+            >>> results = engine.analyze_real_data(
+            ...     data=real_data,
+            ...     demand_column='avg_demand',
+            ...     lead_time_column='lead_days'
+            ... )
+            >>> results.to_csv('kanban_analysis.csv', index=False)
+        """
+        # Validate input
+        required_columns = [demand_column, lead_time_column]
+        missing = [col for col in required_columns if col not in data.columns]
+        if missing:
+            raise ValueError(f"Missing required columns: {missing}")
+        
+        # Create a copy to avoid modifying original data
+        result = data.copy()
+        
+        # Extract demand and lead time
+        demand = result[demand_column].values.astype(float)
+        lead_time = result[lead_time_column].values.astype(float)
+        
+        # Handle safety stock
+        if safety_stock_column and safety_stock_column in result.columns:
+            safety_stock = result[safety_stock_column].values.astype(float)
+        else:
+            # Generate safety stock based on configuration
+            n_rows = len(result)
+            safety_stock = np.round(
+                np.random.uniform(
+                    self.config.min_safety_stock,
+                    self.config.max_safety_stock,
+                    n_rows
+                ),
+                2
+            )
+            result['safety_stock_SS'] = safety_stock
+        
+        # Handle container capacity
+        if container_capacity_column and container_capacity_column in result.columns:
+            container_capacity = result[container_capacity_column].values.astype(float)
+        else:
+            # Assign standard container sizes
+            n_rows = len(result)
+            container_capacity = np.random.choice(
+                list(self.config.container_sizes),
+                n_rows
+            )
+            result['container_capacity_C'] = container_capacity
+        
+        # Ensure positive values
+        demand = np.abs(demand)
+        lead_time = np.maximum(lead_time, 1)  # Minimum 1 day lead time
+        
+        # Calculate Kanban metrics using Six Sigma formulas
+        kanban_cards = np.ceil(
+            (demand * lead_time * (1 + safety_stock)) / container_capacity
+        ).astype(int)
+        
+        reorder_point = (demand * lead_time * (1 + safety_stock)).astype(int)
+        
+        # Add calculated columns
+        result['demand_D'] = demand.astype(int)
+        result['lead_time_L'] = lead_time.astype(int)
+        result['kanban_cards_N'] = kanban_cards
+        result['reorder_point_ROP'] = reorder_point
+        
+        # Reorder columns for clarity
+        priority_cols = [
+            node_id_column,
+            'demand_D',
+            'lead_time_L',
+            'safety_stock_SS',
+            'container_capacity_C',
+            'kanban_cards_N',
+            'reorder_point_ROP'
+        ]
+        
+        # Keep only columns that exist
+        existing_priority = [col for col in priority_cols if col in result.columns]
+        other_cols = [col for col in result.columns if col not in existing_priority]
+        
+        result = result[existing_priority + other_cols]
+        
+        return result
+    
+    def load_and_analyze_csv(
+        self,
+        filepath: str,
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Convenience method to load CSV and analyze in one step.
+        
+        Args:
+            filepath: Path to CSV file
+            **kwargs: Arguments to pass to analyze_real_data()
+            
+        Returns:
+            DataFrame with analyzed results
+            
+        Example:
+            >>> engine = GoogleAntigravity()
+            >>> results = engine.load_and_analyze_csv(
+            ...     'inventory_data.csv',
+            ...     demand_column='daily_demand',
+            ...     lead_time_column='lead_days'
+            ... )
+        """
+        data = pd.read_csv(filepath)
+        return self.analyze_real_data(data, **kwargs)
 
 
 class GoogleJules(GoogleAntigravity):

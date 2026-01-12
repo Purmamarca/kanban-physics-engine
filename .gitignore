@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Data and logs
-*.csv
-*.txt
+# Generated output files (but allow example data)
+kanban_physics_data.csv
+*_results.csv
+*_analyzed.csv
+*_analysis.csv
+requirements.txt
+
