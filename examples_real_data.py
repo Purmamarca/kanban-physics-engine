@@ -6,7 +6,7 @@ This script demonstrates how to use the Kanban Physics Engine with
 real-world inventory data.
 """
 
-from social_physics_engine.generate_data import GoogleAntigravity, PhysicsConfig
+from social_physics_engine.generate_data import KanbanEngine, PhysicsConfig
 import pandas as pd
 import os
 
@@ -18,7 +18,7 @@ def example_1_basic_analysis():
     print("=" * 70)
     
     # Initialize engine
-    engine = GoogleAntigravity(seed=42)
+    engine = KanbanEngine(seed=42)
     
     # Load example data
     data_path = os.path.join('data', 'example_inventory.csv')
@@ -76,13 +76,12 @@ def example_2_custom_configuration():
         avg_demand=300,
         demand_std_dev=100,
         avg_lead_time=7,
-        min_safety_stock=0.25,  # Higher safety buffer
-        max_safety_stock=0.50,
+        lead_time_std_dev=2.5,  # Specified variability
         container_sizes=(50, 100, 200),  # Larger containers
         z_score=1.96  # 97.5% service level
     )
     
-    engine = GoogleAntigravity(seed=42, config=config)
+    engine = KanbanEngine(seed=42, config=config)
     
     # Create sample high-demand data
     high_demand_data = pd.DataFrame({
@@ -124,16 +123,16 @@ def example_3_comparative_analysis():
     })
     
     scenarios = {
-        'Current State': PhysicsConfig(avg_lead_time=7, min_safety_stock=0.20, max_safety_stock=0.30),
-        'Optimized': PhysicsConfig(avg_lead_time=4, min_safety_stock=0.15, max_safety_stock=0.25),
-        'Worst Case': PhysicsConfig(avg_lead_time=12, min_safety_stock=0.30, max_safety_stock=0.50)
+        'Current State': PhysicsConfig(avg_lead_time=7, lead_time_std_dev=1.5),
+        'Optimized': PhysicsConfig(avg_lead_time=4, lead_time_std_dev=0.8),
+        'Worst Case': PhysicsConfig(avg_lead_time=12, lead_time_std_dev=3.5)
     }
     
     print("\n📊 Scenario Comparison:")
     print("-" * 70)
     
     for scenario_name, config in scenarios.items():
-        engine = GoogleAntigravity(seed=42, config=config)
+        engine = KanbanEngine(seed=42, config=config)
         results = engine.analyze_real_data(
             inventory_data,
             demand_column='demand',
@@ -153,7 +152,7 @@ def example_4_batch_processing():
     print("EXAMPLE 4: Batch Processing Multiple Data Files")
     print("=" * 70)
     
-    engine = GoogleAntigravity()
+    engine = KanbanEngine()
     
     # Simulate multiple department data
     departments = {

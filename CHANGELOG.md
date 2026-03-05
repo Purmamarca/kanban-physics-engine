@@ -1,3 +1,40 @@
+# 🚀 Version 2.1.0 - Refinement & Standardization
+
+## ✨ Improvements & Fixes
+
+### 1. **Semantic Renaming**
+
+- ✅ Renamed `GoogleAntigravity` to `KanbanEngine` for better clarity and alignment with domain.
+- ✅ Renamed `GoogleJules` to a lighter adapter (internal only).
+
+### 2. **Professional Licensing**
+
+- ✅ Unified license to **MIT**.
+- ✅ Removed contradictory `UNLICENSE` file.
+
+### 3. **Clean Repository**
+
+- ✅ Removed `test_output.txt` from repository and added it to `.gitignore`.
+- ✅ Cleaned up redundant `generate_data.py` from root directory.
+
+### 4. **Scientific Accuracy**
+
+- ✅ Updated Safety Stock (SS) formula to professional Six Sigma standards:
+  `SS = Z × σ_demand × √L + Z × D × σ_L`
+- ✅ Added `lead_time_std_dev` to `PhysicsConfig` for more precise modeling.
+- ✅ Safety Stock is now calculated in absolute units rather than a simple percentage.
+
+### 5. **Packaging & Installation**
+
+- ✅ Added `pyproject.toml` for standard Python packaging.
+- ✅ Enabled `pip install .` support.
+
+### 6. **Governance**
+
+- ✅ Ensured `main` is the primary branch.
+
+---
+
 # 🎉 Kanban Physics Engine - Production Ready
 
 ## ✅ Completed Tasks
@@ -115,19 +152,16 @@ results.to_csv('kanban_recommendations.csv')
 ## 🎯 Real-World Applications Enabled
 
 1. **Manufacturing Inventory Optimization**
-
    - Load production parts data
    - Calculate optimal Kanban cards
    - Determine reorder points
 
 2. **Supply Chain Analysis**
-
    - Process supplier lead times
    - Model safety stock requirements
    - Optimize container sizes
 
 3. **Warehouse Management**
-
    - Analyze SKU demand patterns
    - Design Kanban systems
    - Reduce inventory costs

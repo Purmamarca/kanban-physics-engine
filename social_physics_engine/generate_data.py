@@ -1,11 +1,11 @@
 """
-⚡ Google Antigravity - Six Sigma Kanban Physics Engine
+⚡ Kanban Engine - Six Sigma Kanban Physics Engine
 ========================================================
 Strict compliance with Six Sigma methodology (Pages 297-308)
-Performance: O(1) vectorized operations using NumPy
+Calculates optimal Kanban cards and Reorder Points using real variability.
 
 Author: Bolt AI Optimization
-Version: 2.0.0
+Version: 2.1.0
 License: MIT
 """
 
@@ -24,16 +24,13 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
 @dataclass
 class PhysicsConfig:
     """Configuration parameters for the physics engine."""
-    # Social Pressure (Average Daily Demand - D)
+    # Average Daily Demand (D)
     avg_demand: int = 250
     demand_std_dev: int = 50
     
-    # Friction (Replenishment Lead Time - L)
+    # Replenishment Lead Time (L)
     avg_lead_time: int = 5
-    
-    # Entropy (Safety Stock - SS)
-    min_safety_stock: float = 0.10
-    max_safety_stock: float = 0.30
+    lead_time_std_dev: float = 1.2
     
     # Container Capacity (C)
     container_sizes: Tuple[int, ...] = (20, 50, 100)
@@ -42,7 +39,7 @@ class PhysicsConfig:
     z_score: float = 1.65
 
 
-class GoogleAntigravity:
+class KanbanEngine:
     """
     ⚡ BOLT OPTIMIZED: STRICT KANBAN PHYSICS (Pages 297-308)
     --------------------------------------------------------
@@ -50,15 +47,14 @@ class GoogleAntigravity:
     Performance: Vectorized (O(1) complexity relative to loop depth).
     
     The engine implements four core Kanban parameters:
-    - D: Average Daily Demand (Social Pressure)
-    - L: Replenishment Lead Time (Friction)
-    - SS: Safety Stock (Entropy Factor)
+    - D: Average Daily Demand
+    - L: Replenishment Lead Time
+    - SS: Safety Stock (Buffered against variability)
     - C: Container Capacity
     
     Additionally calculates:
     - N: Number of Kanban cards (Page 297 formula)
     - ROP: Reorder Point (D × L + SS)
-    - Interaction Score: Spatial influence metric (Vectorized)
     """
     
     def __init__(self, seed: Optional[int] = 42, config: Optional[PhysicsConfig] = None, num_users: Optional[int] = None):
@@ -96,8 +92,8 @@ class GoogleAntigravity:
             raise ValueError("demand_std_dev must be non-negative")
         if self.config.avg_lead_time <= 0:
             raise ValueError("avg_lead_time must be positive")
-        if not (0 <= self.config.min_safety_stock <= self.config.max_safety_stock <= 1):
-            raise ValueError("Safety stock must be between 0 and 1")
+        if self.config.lead_time_std_dev < 0:
+            raise ValueError("lead_time_std_dev must be non-negative")
         if not all(c > 0 for c in self.config.container_sizes):
             raise ValueError("Container sizes must be positive")
     
@@ -142,30 +138,32 @@ class GoogleAntigravity:
         """
         return np.random.poisson(self.config.avg_lead_time, n_nodes)
     
-    def entropy_factor(self, n_nodes: int) -> np.ndarray:
+    def calculate_safety_stock(self, demand: np.ndarray, lead_time: np.ndarray) -> np.ndarray:
         """
         PARAMETER: Safety Stock (SS) [Pages 297 & 301]
-        LOGIC: Derived Entropy.
+        LOGIC: Six Sigma variability buffer.
         
-        Six Sigma Note: Safety Stock (SS) is the hedge against Friction (L) and 
-        Pressure (D) variability. Protects against stockouts during lead time.
+        Formula: SS = Z × σ_demand × √L + Z × D × σ_L
         
-        ⚡ OPTIMIZATION: Vectorized uniform distribution.
-        
-        Args:
-            n_nodes: Number of nodes to simulate
+        Where:
+            Z = Z-score (service level)
+            σ_demand = Standard deviation of demand
+            L = Lead time
+            D = Average demand
+            σ_L = Standard deviation of lead time
             
+        ⚡ OPTIMIZATION: Fully vectorized.
+        
         Returns:
-            Array of safety stock percentages (floats, e.g., 0.20 = 20% buffer)
+            Array of safety stock values (absolute units)
         """
-        return np.round(
-            np.random.uniform(
-                self.config.min_safety_stock,
-                self.config.max_safety_stock,
-                n_nodes
-            ),
-            2
-        )
+        z = self.config.z_score
+        sigma_d = self.config.demand_std_dev
+        sigma_l = self.config.lead_time_std_dev
+        
+        # SS = Z * sigma_D * sqrt(L) + Z * D * sigma_L
+        ss = (z * sigma_d * np.sqrt(lead_time)) + (z * demand * sigma_l)
+        return ss
     
     def container_capacity(self, n_nodes: int) -> np.ndarray:
         """
@@ -195,27 +193,18 @@ class GoogleAntigravity:
         """
         Calculate number of Kanban cards using Six Sigma formula [Page 297].
         
-        Formula: N = (D × L × (1 + SS)) / C
+        Formula: N = (D × L + SS) / C
         Where:
             N = Number of Kanban cards
             D = Average Daily Demand
             L = Lead Time
-            SS = Safety Stock percentage
+            SS = Safety Stock (absolute units)
             C = Container Capacity
         
         ⚡ OPTIMIZATION: Fully vectorized calculation.
-        
-        Args:
-            demand: Average daily demand array
-            lead_time: Lead time array
-            safety_stock: Safety stock percentage array
-            container_capacity: Container capacity array
-            
-        Returns:
-            Array of Kanban card counts (rounded up to ensure coverage)
         """
         return np.ceil(
-            (demand * lead_time * (1 + safety_stock)) / container_capacity
+            (demand * lead_time + safety_stock) / container_capacity
         ).astype(int)
     
     def calculate_reorder_point(
@@ -227,18 +216,17 @@ class GoogleAntigravity:
         """
         Calculate Reorder Point (ROP) for inventory management.
         
-        Formula: ROP = (D × L) + (D × L × SS)
-        Simplified: ROP = D × L × (1 + SS)
+        Formula: ROP = (D × L) + SS
         
         Args:
             demand: Average daily demand array
             lead_time: Lead time array
-            safety_stock: Safety stock percentage array
+            safety_stock: Safety stock (absolute units) array
             
         Returns:
             Array of reorder point values
         """
-        return (demand * lead_time * (1 + safety_stock)).astype(int)
+        return (demand * lead_time + safety_stock).astype(int)
     
     def calculate_interactions(self) -> pd.DataFrame:
         """
@@ -317,8 +305,10 @@ class GoogleAntigravity:
         # Generate base parameters
         social_pressure = self.measure_social_pressure(n_nodes)
         friction = self.calculate_friction(n_nodes)
-        entropy = self.entropy_factor(n_nodes)
         capacity = self.container_capacity(n_nodes)
+        
+        # Calculate safety stock using variability formula
+        entropy = self.calculate_safety_stock(social_pressure, friction)
         
         # Calculate derived metrics
         kanban_cards = self.calculate_kanban_cards(
@@ -333,7 +323,7 @@ class GoogleAntigravity:
             'node_id': range(n_nodes),
             'demand_D': social_pressure,
             'lead_time_L': friction,
-            'safety_stock_SS': entropy,
+            'safety_stock_SS': entropy.astype(int),
             'container_capacity_C': capacity,
             'kanban_cards_N': kanban_cards,
             'reorder_point_ROP': reorder_point,
@@ -394,17 +384,9 @@ class GoogleAntigravity:
         if safety_stock_column and safety_stock_column in result.columns:
             safety_stock = result[safety_stock_column].values.astype(float)
         else:
-            # Generate safety stock based on configuration
-            n_rows = len(result)
-            safety_stock = np.round(
-                np.random.uniform(
-                    self.config.min_safety_stock,
-                    self.config.max_safety_stock,
-                    n_rows
-                ),
-                2
-            )
-            result['safety_stock_SS'] = safety_stock
+            # Calculate safety stock based on variability formula
+            safety_stock = self.calculate_safety_stock(demand, lead_time)
+            result['safety_stock_SS'] = safety_stock.astype(int)
         
         # Handle container capacity
         if container_capacity_column and container_capacity_column in result.columns:
@@ -424,10 +406,10 @@ class GoogleAntigravity:
         
         # Calculate Kanban metrics using Six Sigma formulas
         kanban_cards = np.ceil(
-            (demand * lead_time * (1 + safety_stock)) / container_capacity
+            (demand * lead_time + safety_stock) / container_capacity
         ).astype(int)
         
-        reorder_point = (demand * lead_time * (1 + safety_stock)).astype(int)
+        reorder_point = (demand * lead_time + safety_stock).astype(int)
         
         # Add calculated columns
         result['demand_D'] = demand.astype(int)
@@ -461,41 +443,26 @@ class GoogleAntigravity:
     ) -> pd.DataFrame:
         """
         Convenience method to load CSV and analyze in one step.
-        
-        Args:
-            filepath: Path to CSV file
-            **kwargs: Arguments to pass to analyze_real_data()
-            
-        Returns:
-            DataFrame with analyzed results
-            
-        Example:
-            >>> engine = GoogleAntigravity()
-            >>> results = engine.load_and_analyze_csv(
-            ...     'inventory_data.csv',
-            ...     demand_column='daily_demand',
-            ...     lead_time_column='lead_days'
-            ... )
         """
         data = pd.read_csv(filepath)
         return self.analyze_real_data(data, **kwargs)
 
 
-class GoogleJules(GoogleAntigravity):
+class GoogleJules(KanbanEngine):
     """
     Adapter for backward compatibility with tests.
-    Inherits optimized interaction calculation from GoogleAntigravity.
+    Inherits optimized interaction calculation from KanbanEngine.
     """
     def __init__(self, num_users: int = 100, seed: int = 42):
         super().__init__(seed=seed, num_users=num_users)
 
 
-def benchmark_performance(engine: GoogleAntigravity, n_nodes: int) -> Dict[str, float]:
+def benchmark_performance(engine: KanbanEngine, n_nodes: int) -> Dict[str, float]:
     """
     Benchmark the performance of the physics engine.
     
     Args:
-        engine: GoogleAntigravity instance
+        engine: KanbanEngine instance
         n_nodes: Number of nodes to simulate
         
     Returns:
@@ -513,8 +480,10 @@ def benchmark_performance(engine: GoogleAntigravity, n_nodes: int) -> Dict[str, 
     timings['friction_ms'] = (time.perf_counter() - start) * 1000
     
     start = time.perf_counter()
-    _ = engine.entropy_factor(n_nodes)
-    timings['entropy_ms'] = (time.perf_counter() - start) * 1000
+    demand = engine.measure_social_pressure(n_nodes)
+    lead_time = engine.calculate_friction(n_nodes)
+    _ = engine.calculate_safety_stock(demand, lead_time)
+    timings['safety_stock_ms'] = (time.perf_counter() - start) * 1000
     
     start = time.perf_counter()
     _ = engine.container_capacity(n_nodes)
@@ -545,9 +514,9 @@ def print_statistics(df: pd.DataFrame) -> None:
     print(f"   Range: [{df['lead_time_L'].min()}, {df['lead_time_L'].max()}]")
     print(f"   Median: {df['lead_time_L'].median():.0f}")
     
-    # Entropy (Safety Stock)
-    print("\n🔹 Entropy Factor (SS) - Uniform Distribution:")
-    print(f"   Mean: {df['safety_stock_SS'].mean():.2f} | Std: {df['safety_stock_SS'].std():.2f}")
+    # Safety Stock
+    print("\n🔹 Safety Stock (SS) - Six Sigma Variability Formula:")
+    print(f"   Mean: {df['safety_stock_SS'].mean():.2f} units | Std: {df['safety_stock_SS'].std():.2f}")
     print(f"   Range: [{df['safety_stock_SS'].min():.2f}, {df['safety_stock_SS'].max():.2f}]")
     
     # Container Capacity
@@ -570,14 +539,14 @@ def print_statistics(df: pd.DataFrame) -> None:
 
 def main():
     """Main execution function."""
-    print("⚡ Google Antigravity - Six Sigma Kanban Physics Engine v2.0")
+    print("⚡ Kanban Engine - Six Sigma Kanban Physics Engine v2.1")
     print("=" * 70)
     print("Strict Compliance with Six Sigma (Pages 297-308)")
     print("=" * 70)
     
     # Initialize the physics engine
     config = PhysicsConfig()
-    engine = GoogleAntigravity(seed=42, config=config)
+    engine = KanbanEngine(seed=42, config=config)
     n_nodes = 200  # Number of nodes to simulate
     
     print(f"\n🔬 Simulating {n_nodes} nodes with vectorized NumPy operations...")

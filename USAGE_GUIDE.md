@@ -22,11 +22,11 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```python
-from social_physics_engine.generate_data import GoogleAntigravity
+from social_physics_engine.generate_data import KanbanEngine
 import pandas as pd
 
 # Initialize the engine
-engine = GoogleAntigravity(seed=42)
+engine = KanbanEngine(seed=42)
 
 # Option 1: Generate simulated data for testing
 df = engine.generate_complete_dataset(n_nodes=200)
@@ -52,7 +52,7 @@ Your CSV file should contain the following columns:
 | `node_id` or `product_id`       | int/str | Unique identifier              | "SKU-001" |
 | `demand` or `avg_demand`        | int     | Average daily demand           | 250       |
 | `lead_time`                     | int     | Replenishment lead time (days) | 5         |
-| `safety_stock` (optional)       | float   | Safety stock percentage (0-1)  | 0.20      |
+| `safety_stock` (optional)       | float   | Absolute safety stock units    | 120       |
 | `container_capacity` (optional) | int     | Container size                 | 50        |
 
 **Minimal Example CSV:**
@@ -67,14 +67,14 @@ SKU-003,420,7
 ### Loading and Analyzing Real Data
 
 ```python
-from social_physics_engine.generate_data import GoogleAntigravity
+from social_physics_engine.generate_data import KanbanEngine
 import pandas as pd
 
 # Load your data
 data = pd.read_csv('inventory_data.csv')
 
 # Initialize engine
-engine = GoogleAntigravity()
+engine = KanbanEngine()
 
 # Analyze and calculate Kanban metrics
 results = engine.analyze_real_data(
@@ -105,14 +105,13 @@ config = PhysicsConfig(
     avg_demand=300,              # Higher baseline demand
     demand_std_dev=75,           # More variability
     avg_lead_time=7,             # Longer lead times
-    min_safety_stock=0.15,       # Minimum 15% buffer
-    max_safety_stock=0.40,       # Maximum 40% buffer
+    lead_time_std_dev=1.5,       # Lead time variability
     container_sizes=(25, 75, 150),  # Custom container sizes
     z_score=1.96                 # 97.5% service level
 )
 
 # Initialize with custom config
-engine = GoogleAntigravity(seed=42, config=config)
+engine = KanbanEngine(seed=42, config=config)
 ```
 
 ### Batch Processing Multiple Files
@@ -120,9 +119,9 @@ engine = GoogleAntigravity(seed=42, config=config)
 ```python
 import glob
 import pandas as pd
-from social_physics_engine.generate_data import GoogleAntigravity
+from social_physics_engine.generate_data import KanbanEngine
 
-engine = GoogleAntigravity()
+engine = KanbanEngine()
 
 # Process all CSV files in a directory
 for file in glob.glob('data/*.csv'):
@@ -144,21 +143,21 @@ for file in glob.glob('data/*.csv'):
 
 #### 1. **Kanban Cards (N)**
 
-- **Formula:** `N = (D × L × (1 + SS)) / C`
+- **Formula:** `N = (D × L + SS) / C`
 - **Meaning:** Number of Kanban cards needed in the system
 - **Action:** This is the number of containers/cards to create
 
 #### 2. **Reorder Point (ROP)**
 
-- **Formula:** `ROP = D × L × (1 + SS)`
+- **Formula:** `ROP = (D × L) + SS`
 - **Meaning:** Inventory level that triggers replenishment
 - **Action:** When inventory hits this level, order more
 
 #### 3. **Safety Stock (SS)**
 
-- **Meaning:** Buffer percentage against variability
-- **Range:** Typically 10-30% (0.10-0.30)
-- **Action:** Higher SS = more protection against stockouts
+- **Formula:** `SS = Z × σ_demand × √L + Z × D × σ_L`
+- **Meaning:** Absolute buffer units against variability
+- **Action:** Higher variability = higher SS requirement
 
 ### Example Output Interpretation
 
@@ -166,7 +165,7 @@ for file in glob.glob('data/*.csv'):
 node_id: SKU-001
 demand_D: 250 units/day
 lead_time_L: 5 days
-safety_stock_SS: 0.20 (20%)
+safety_stock_SS: 250 units
 container_capacity_C: 50 units
 kanban_cards_N: 30 cards
 reorder_point_ROP: 1500 units
@@ -190,7 +189,7 @@ reorder_point_ROP: 1500 units
 production_data = pd.read_csv('manufacturing_parts.csv')
 
 # Analyze
-engine = GoogleAntigravity()
+engine = KanbanEngine()
 results = engine.analyze_real_data(production_data)
 
 # Find items needing most Kanban cards
@@ -205,11 +204,10 @@ print(high_demand[['node_id', 'demand_D', 'kanban_cards_N']])
 # Custom config for supply chain
 config = PhysicsConfig(
     avg_lead_time=10,        # Longer supply chain
-    min_safety_stock=0.25,   # Higher safety buffer
-    max_safety_stock=0.50
+    lead_time_std_dev=3.0    # High lead time variability
 )
 
-engine = GoogleAntigravity(config=config)
+engine = KanbanEngine(config=config)
 results = engine.analyze_real_data(supply_chain_data)
 
 # Identify high-risk items (high ROP)
@@ -275,9 +273,9 @@ data['safety_stock_SS'] = 0.20  # 20% for all items
 
 This engine strictly follows Six Sigma Yellow Belt Kanban methodology:
 
-- **Page 297:** Core Kanban formula `N = (D × L × (1 + SS)) / C`
+- **Page 297:** Core Kanban formula `N = (D × L + SS) / C`
 - **Page 300:** Rule 2 - Standardized container sizes
-- **Page 301:** Safety stock as variability hedge
+- **Page 301:** Safety stock as variability-based hedge
 
 All calculations are empirically proven and industry-standard.
 

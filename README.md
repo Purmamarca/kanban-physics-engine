@@ -42,23 +42,35 @@ All calculations are based on **certified Six Sigma Kanban formulas**:
 #### 1. **Number of Kanban Cards (N)** [Page 297]
 
 ```
-N = (D × L × (1 + SS)) / C
+N = (D × L + SS) / C
 ```
 
 Where:
 
 - **D** = Average Daily Demand
 - **L** = Lead Time (days)
-- **SS** = Safety Stock (percentage, e.g., 0.20 = 20%)
+- **SS** = Safety Stock (absolute units, calculated from variability)
 - **C** = Container Capacity
 
 #### 2. **Reorder Point (ROP)**
 
 ```
-ROP = D × L × (1 + SS)
+ROP = (D × L) + SS
 ```
 
 Determines when to trigger replenishment.
+
+#### 3. **Safety Stock (SS) [Variability-Based]**
+
+```
+SS = Z × σ_demand × √L + Z × D × σ_L
+```
+
+Where:
+
+- **Z** = Z-Score for desired service level
+- **σ_demand** = Standard deviation of demand
+- **σ_L** = Standard deviation of lead time
 
 ### Statistical Distributions (Empirical)
 
@@ -66,7 +78,7 @@ Determines when to trigger replenishment.
 | --------------------- | ----------------- | -------------------------------------------------------- |
 | **Demand (D)**        | Normal (Gaussian) | Demand variability follows bell curve in real systems    |
 | **Lead Time (L)**     | Poisson           | Captures "long tail" delays; most average, some extreme  |
-| **Safety Stock (SS)** | Uniform           | Entropy hedge against D and L variability                |
+| **Safety Stock (SS)** | Six Sigma formula | variability hedge against D and L variability            |
 | **Container (C)**     | Discrete Choice   | Standardized lot sizes (visual signals, Page 300 Rule 2) |
 
 ---
@@ -129,11 +141,11 @@ pandas>=1.3.0
 ### Analyzing Real Data
 
 ```python
-from social_physics_engine.generate_data import GoogleAntigravity
+from social_physics_engine.generate_data import KanbanEngine
 import pandas as pd
 
 # Initialize engine
-engine = GoogleAntigravity(seed=42)
+engine = KanbanEngine(seed=42)
 
 # Load your real inventory data
 inventory_data = pd.read_csv('your_inventory.csv')
@@ -156,10 +168,10 @@ results.to_csv('kanban_recommendations.csv', index=False)
 ### Quick CSV Analysis
 
 ```python
-from social_physics_engine.generate_data import GoogleAntigravity
+from social_physics_engine.generate_data import KanbanEngine
 
 # One-line analysis
-engine = GoogleAntigravity()
+engine = KanbanEngine()
 results = engine.load_and_analyze_csv(
     'inventory_data.csv',
     demand_column='demand',
@@ -172,20 +184,19 @@ results.to_csv('analysis_results.csv', index=False)
 ### Custom Configuration for Your Environment
 
 ```python
-from social_physics_engine.generate_data import GoogleAntigravity, PhysicsConfig
+from social_physics_engine.generate_data import KanbanEngine, PhysicsConfig
 
 # Configure for your specific environment
 config = PhysicsConfig(
     avg_demand=300,              # Your average demand
     demand_std_dev=75,           # Your demand variability
     avg_lead_time=7,             # Your typical lead time
-    min_safety_stock=0.15,       # Minimum safety buffer
-    max_safety_stock=0.40,       # Maximum safety buffer
+    lead_time_std_dev=1.5,       # Your lead time variability
     container_sizes=(25, 75, 150),  # Your container sizes
     z_score=1.96                 # Service level (97.5%)
 )
 
-engine = GoogleAntigravity(seed=42, config=config)
+engine = KanbanEngine(seed=42, config=config)
 results = engine.analyze_real_data(your_data)
 ```
 
@@ -238,7 +249,7 @@ SKU-003       420            7             0.25                   100           
 The engine implements the exact formula for calculating Kanban cards:
 
 ```
-N = (D × L × (1 + SS)) / C
+N = (D × L + SS) / C
 ```
 
 Rounded up (ceiling) to ensure adequate coverage.
@@ -259,7 +270,7 @@ Safety Stock (SS) is the **empirically proven hedge** against:
 
 - **Normal Distribution** for demand: Proven in manufacturing/supply chain data
 - **Poisson Distribution** for lead time: Captures real-world delay patterns
-- **Uniform Distribution** for safety stock: Represents entropy/uncertainty range
+- **Safety Stock formula**: Industry-standard variability-based hedging
 
 ---
 
@@ -269,7 +280,7 @@ Safety Stock (SS) is the **empirically proven hedge** against:
 social-physics-engine/
 ├── social_physics_engine/
 │   ├── __init__.py
-│   └── generate_data.py          # Core engine (GoogleAntigravity class)
+│   └── generate_data.py          # Core engine (KanbanEngine class)
 ├── README.md
 ├── requirements.txt
 └── .gitignore
@@ -287,13 +298,13 @@ Dataclass for configuring Six Sigma parameters:
 - Container sizes
 - Z-score for service level
 
-#### `GoogleAntigravity`
+#### `KanbanEngine`
 
 Main physics engine with methods:
 
 - `measure_social_pressure()` → Generate demand (D)
 - `calculate_friction()` → Generate lead time (L)
-- `entropy_factor()` → Generate safety stock (SS)
+- `calculate_safety_stock()` → Apply Six Sigma variability formula
 - `container_capacity()` → Generate container sizes (C)
 - `calculate_kanban_cards()` → Apply Page 297 formula
 - `calculate_reorder_point()` → Compute ROP
